@@ -1,4 +1,4 @@
-#BlobRunner 
+# BlobRunner 
 
 BlobRunner is a simple tool to quickly debug shellcode extracted during malware analysis.  
 BlobRunner allocates memory for the target file and jumps to the base (or offset) of the allocated memory. This allows
@@ -8,7 +8,7 @@ an analyst to quickly debug into extracted artifacts with minimal overhead and e
 
 To use BlobRunner you can download a compiled version from /bin or follow the steps below to build the executable.
 
-##Building
+## Building
 
 Requirements
  - Download and install Microsoft Visual C++ Build Tools or Visual Studio 
