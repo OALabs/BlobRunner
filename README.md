@@ -6,7 +6,7 @@ an analyst to quickly debug into extracted artifacts with minimal overhead and e
 
 ![BlobRunner Sample](br.png "BlobRunner")
 
-To use BlobRunner you can download a compiled version from /bin or follow the steps below to build the executable.
+To use BlobRunner, you can download the compiled executable from the [releases](https://github.com/OALabs/BlobRunner/releases) page or build your own using the steps below.
 
 ## Building
 
@@ -40,3 +40,13 @@ Debug into file and don't pause before the jump. __Warning:__ Ensure you have a 
 BlobRunner.exe shellcode.bin --nopause
 ```
 
+##### Remote Debugging Shell Blobs (IDAPro)
+
+The process is identical to debugging shellcode locally with the exception that the you need to copy the shell blob
+to the remote system. It's easiest if you copy the file to the same location that you are running win32_remote.exe 
+from.
+
+## Feedback / Help
+
+ - Any questions, comments or requests you can find us on twitter: @seanmw or @herrcore
+ - Pull requests welcome! 
