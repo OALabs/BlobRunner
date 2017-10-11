@@ -3,12 +3,16 @@
 #include <tchar.h>
 #include <stdlib.h>
 
+#ifdef _WIN64
+    #include <WinBase.h>
+#endif
+
 // Define bool
 typedef int bool;
 #define true 1
 #define false 0
 
-char *_version = "0.0.1";
+char *_version = "0.0.2";
 
 void banner(){
     system("cls");
@@ -62,19 +66,45 @@ LPVOID process_file(char* inputfile_name){
 void execute(LPVOID base, int offset, bool nopause, bool debug)
 {
 	LPVOID entry;
-	
+	#ifdef _WIN64
+	    DWORD   thread_id;
+	    HANDLE  thread_handle;
+	#endif
+
 	entry = (LPVOID)((int)base + offset);
-    printf(" [*] Entry: 0x%08x\n",entry);
 
-    if(nopause == false){
-	    printf("--- Press a key to jump into shellcode! ---\n");
-	    getchar();
-	}
-	else{
-	    printf(" [*] Jumping to shellcode\n");
-	}
 
-    __asm jmp entry;
+	#ifdef _WIN64
+
+	    printf(" [*] Creating Suspended Thread...\n");
+        thread_handle = CreateThread(
+            NULL,          // Attributes
+            0,             // Stack size (Default)
+            entry,         // Thread EP
+            NULL,          // Arguments
+            0x4,           // Create Suspended
+            &thread_id);   // Thread identifier
+
+        if(thread_handle == NULL){
+            printf(" [!] Error Creating thread...");
+            return;
+        }
+        printf(" [*] Created Thread: [%d]\n", thread_id);
+        printf(" [*] Thread Entry: 0x%016x\n",entry);
+        printf(" [*] Navigate to the Thread Entry and set a breakpoint. Then press any key to resume the thread.\n",entry);
+        getchar();
+        ResumeThread(thread_handle);
+    #else
+        printf(" [*] Entry: 0x%08x\n",entry);
+        if(nopause == false){
+	        printf(" [*] Navigate to the EP and set a breakpoint. Then press any key to jump to the shellcode.\n");
+	        getchar();
+	    }
+	    else{
+	        printf(" [*] Jumping to shellcode\n");
+	    }
+        __asm jmp entry;
+    #endif
 }
 
 int main(int argc, char* argv[])

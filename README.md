@@ -18,7 +18,21 @@ __Build Steps__
 
  - Open Visual Studio Command Prompt 
  - Navigate to the directory where BlobRunner is checked out
- - Build the executable by running: cl blobrunner.c
+ - Build the executable by running: 
+ ```
+ cl blobrunner.c
+ ```
+ 
+### Building BlobRunner x64 
+ 
+Building the x64 version is virtually the same as above, but simply uses the x64 tooling. 
+ - Open x64 Visual Studio Command Prompt 
+ - Navigate to the directory where BlobRunner is checked out
+ - Build the executable by running: 
+  ```
+   cl /Feblobrunner64.exe /Foblobrunner64.out blobrunner.c
+  ```
+
  
 ## Usage
 
@@ -44,6 +58,11 @@ Debug into file and don't pause before the jump. __Warning:__ Ensure you have a 
 ```
 BlobRunner.exe shellcode.bin --nopause
 ```
+
+##### Debugging x64 Shellcode
+
+Inline assembly [isn't supported](https://msdn.microsoft.com/en-us/library/wbk4z78b.aspx) by the x64 compiler, so to support debugging into x64 shellcode the loader 
+creates a suspended thread which allows you to place a breakpoint at the thread entry, before the thread is resumed.
 
 ##### Remote Debugging Shell Blobs (IDAPro)
 

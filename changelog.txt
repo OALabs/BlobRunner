@@ -1,0 +1,6 @@
+0.0.2
+ - Added support for x64 debugging by using CreateThread and ResumeThread
+ - Minor updates
+
+0.0.1
+ - Initial Version
