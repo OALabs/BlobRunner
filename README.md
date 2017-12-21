@@ -70,6 +70,10 @@ The process is virtually identical to debugging shellcode locally - with the exc
 to the remote system. If the file is copied to the same path you are running _win32_remote.exe_ from, you just need to use 
 the file name for the parameter. Otherwise, you will need to specify the path to the shellcode file on the remote system.
 
+## Examples 
+
+A set of non-malicious example shellcode files.
+
 ## Feedback / Help
 
  - Any questions, comments or requests you can find us on twitter: @seanmw or @herrcore
