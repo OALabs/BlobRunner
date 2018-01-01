@@ -70,9 +70,15 @@ The process is virtually identical to debugging shellcode locally - with the exc
 to the remote system. If the file is copied to the same path you are running _win32_remote.exe_ from, you just need to use 
 the file name for the parameter. Otherwise, you will need to specify the path to the shellcode file on the remote system.
 
-## Examples 
+## Shellcode Samples  
 
-A set of non-malicious example shellcode files.
+You can quickly generate shellcode samples using the Metasploit tool [msfvenom](https://github.com/rapid7/metasploit-framework/wiki/How-to-use-msfvenom).
+
+Generating a simple Windows exec payload. 
+
+```
+msfvenom -a x86 --platform windows -p windows/exec cmd=calc.exe -o test2.bin
+```
 
 ## Feedback / Help
 
