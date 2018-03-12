@@ -1,193 +1,192 @@
 #include <stdio.h>
 #include <windows.h>
-#include <tchar.h>
-#include <stdlib.h>
-
-#ifdef _WIN64
-    #include <WinBase.h>
-#endif
 
 // Define bool
 typedef int bool;
 #define true 1
 #define false 0
 
-const char *_version = "0.0.3";
+#define COLOR_GREEN(txt) "\033[92m"txt"\033[0m"
+#define COLOR_YELLOW(txt) "\033[93m"txt"\033[0m"
+#define COLOR_RED(txt) "\033[31m"txt"\033[0m"
 
+
+const char *_version = "0.0.4";
 const char *_banner = " __________.__        ___.  __________\n"
-    			   " \\______   \\  |   ____\\_ |__\\______   \\__ __  ____   ____   ___________        \n"
-    			   "  |    |  _/  |  /  _ \\| __ \\|       _/  |  \\/    \\ /    \\_/ __ \\_  __ \\     \n"
-                   "  |    |   \\  |_(  <_> ) \\_\\ \\    |   \\  |  /   |  \\   |  \\  ___/|  | \\/    \n"
-                   "  |______  /____/\\____/|___  /____|_  /____/|___|  /___|  /\\___  >__|             \n"
-                   "         \\/                \\/       \\/           \\/     \\/     \\/           \n\n"
-                   "                                                               \033[92m %s\033[0m \n\n";
+" \\______   \\  |   ____\\_ |__\\______   \\__ __  ____   ____   ___________        \n"
+"  |    |  _/  |  /  _ \\| __ \\|       _/  |  \\/    \\ /    \\_/ __ \\_  __ \\     \n"
+"  |    |   \\  |_(  <_> ) \\_\\ \\    |   \\  |  /   |  \\   |  \\  ___/|  | \\/    \n"
+"  |______  /____/\\____/|___  /____|_  /____/|___|  /___|  /\\___  >__|             \n"
+"         \\/                \\/       \\/           \\/     \\/     \\/           \n\n"
+"                                                               " COLOR_GREEN("%s") " \n\n";
 
-void banner(){
-    system("cls");
-    printf(_banner, _version);
-    return;
+const char *_help = "     Required args: <inputfile>\n"
+"     Optional Args:\n"
+"                     --offset <offset> The offset to jump into.\n"
+"                     --nopause         Don't pause before jumping to shellcode. Danger!!! \n"
+"                     --autobreak       Insert a breakpoint at the offset. (Default: 0)\n"
+//"                     --debug           Verbose logging.\n"
+"                     --version         Print version and exit.\n\n";
+
+void banner() {
+	system("cls");
+	printf(_banner, _version);
+	return;
 }
 
-LPVOID process_file(char* inputfile_name, bool autobreak, int offset, bool debug){
-	LPVOID lpvBase;
-	FILE *file;
-	unsigned long fileLen;
-	char *buffer;
 
-	file = fopen(inputfile_name, "rb");
+typedef struct {
+	int offset;
+	bool nopause;
+	bool debug;
+	bool autobreak;
+	char *input_file;
+} ProgramArgs, *pProgramArgs;
 
-	if (!file){
-		printf(" [!] Error: Unable to open %s\n", inputfile_name);
+bool parse_args(pProgramArgs args, char* argv[], int argc) {
+	if (argc < 2) {
+		printf(COLOR_RED("[!] Error: ") "No file!\n");
+		printf(_help);
+		return false;
+	}
+	args->input_file = argv[1];
 
-		return (LPVOID)NULL;
+	for (int i = 2; i < argc; i++) {
+		if (strcmp(argv[i], "--offset") == 0) {
+			printf(" [*] Parsing offset...\n");
+			args->offset = strtol(argv[++i], NULL, 16);
+		}
+		else if (strcmp(argv[i], "--nopause") == 0) {
+			args->nopause = true;
+		}
+		else if (strcmp(argv[i], "--autobreak") == 0) {
+			args->autobreak = true;
+			args->nopause = true;
+		}
+		else if (strcmp(argv[i], "--debug") == 0) {
+			args->debug = true;
+		}
+		else if (strcmp(argv[i], "--version") == 0) {
+			printf("Version: %s", _version);
+		}
+		else {
+			printf(COLOR_YELLOW(" [!] Warning: ") "Unknown arg: %s\n", argv[i]);
+		}
+	}
+	return true;
+}
+
+
+char* read_data_from_file(char *input_file, size_t *data_size, bool debug) {
+	printf(" [*] Using file: %s \n", input_file);
+
+	FILE *file = fopen(input_file, "rb");
+	if (!file) {
+		printf(COLOR_RED(" [!] Error: ") "Unable to open %s\n", input_file);
+		return false;
 	}
 
-	printf (" [*] Reading file...\n");	
+	printf(" [*] Reading file...\n");
 	fseek(file, 0, SEEK_END);
-	fileLen=ftell(file); //Get Length
+	unsigned long fileLen = ftell(file);
 
-	printf (" [*] File Size: 0x%04x\n", fileLen);
-	fseek(file, 0, SEEK_SET); //Reset
+	printf(" [*] File Size: 0x%04x\n", fileLen);
+	char *buffer = (char *)malloc(fileLen);
 
-	if(autobreak)
-		fileLen+=2;
-	else
-		fileLen+=1;
-	
-	buffer=(char *)malloc(fileLen); //Create Buffer
+	fseek(file, 0, SEEK_SET);
+	fread(buffer, fileLen, 1, file);
+	fclose(file);
 
-	if(autobreak){
-		if(offset == 0){
-			buffer[0] = 0xCC;
-			fread(buffer+1, fileLen, 1, file);
-		}
-		else{
-			buffer[offset] = 0xCC;
-			fread(buffer, offset, 1, file);
-			fread(buffer+offset+1, fileLen, 1, file);
-		}
-	}
-	else{
-		fread(buffer, fileLen, 1, file);	
-	}
-	
-	fclose(file);                     
-	
-	printf (" [*] Allocating Memory...");	
+	*data_size = fileLen;
+	return buffer;
+}
 
-	lpvBase = VirtualAlloc(NULL,fileLen,0x3000,0x40);
+LPVOID copy_data_to_executable_memory(char *data, size_t data_size, bool debug) {
+	printf(" [*] Allocating Memory...");
+
+	LPVOID lpvBase = VirtualAlloc(NULL,					//The starting address of the region to allocate
+		data_size,					//The size of the region, in bytes.
+		MEM_COMMIT | MEM_RESERVE,	//The type of memory allocation. 
+		PAGE_EXECUTE_READWRITE);    //The memory protection type
 
 	printf(".Allocated!\n");
-	printf(" [*]   |-Base: 0x%08x\n",lpvBase);
-	printf(" [*] Copying input data...\n");	
+	printf(" [*]   |-Base: %p\n", lpvBase);
+	printf(" [*] Copying input data...\n");
 
-	CopyMemory(lpvBase, buffer, fileLen);
+	CopyMemory(lpvBase, data, data_size);
 	return lpvBase;
 }
 
-void execute(LPVOID base, int offset, bool nopause, bool autobreak, bool debug)
-{
-	LPVOID entry;
-	#ifdef _WIN64
-	    DWORD   thread_id;
-	    HANDLE  thread_handle;
-	#endif
 
+int filter(unsigned int code, struct _EXCEPTION_POINTERS *ep) {
+	printf(COLOR_RED(" [!] Warning: ") "Unhandled Exception was generated during shellcode execution\n");
+	printf("Catch it? y/n\n");
 
-	entry = (LPVOID)((int)base + offset);
-
-
-	#ifdef _WIN64
-
-	    printf(" [*] Creating Suspended Thread...\n");
-        thread_handle = CreateThread(
-            NULL,          // Attributes
-            0,             // Stack size (Default)
-            entry,         // Thread EP
-            NULL,          // Arguments
-            0x4,           // Create Suspended
-            &thread_id);   // Thread identifier
-
-        if(thread_handle == NULL){
-            printf(" [!] Error Creating thread...");
-            return;
-        }
-        printf(" [*] Created Thread: [%d]\n", thread_id);
-        printf(" [*] Thread Entry: 0x%016x\n",entry);
-        printf(" [*] Navigate to the Thread Entry and set a breakpoint. Then press any key to resume the thread.\n",entry);
-        getchar();
-        ResumeThread(thread_handle);
-    #else
-        printf(" [*] Entry: 0x%08x\n",entry);
-        if(nopause == false){
-	        printf(" [*] Navigate to the EP and set a breakpoint. Then press any key to jump to the shellcode.\n");
-	        getchar();
-	    }
-	    else{
-	        printf(" [*] Jumping to shellcode\n");
-	    }
-        __asm jmp entry;
-    #endif
+	char ch;
+	while (ch = getchar()) {
+		if (ch == 'y' || ch == 'Y' || ch == '\n') {
+			return EXCEPTION_EXECUTE_HANDLER;
+		}
+		if (ch == 'n' || ch == 'N') {
+			return EXCEPTION_CONTINUE_SEARCH;
+		}
+	}
+	return EXCEPTION_CONTINUE_SEARCH;
 }
+
+void execute(LPVOID base, int offset, bool nopause, bool autobreak, bool debug) {
+	printf(" [*] Using offset: 0x%08x\n", offset);
+
+	LPVOID entry = (LPVOID)((int)base + offset);
+	printf(" [*] Entry: %p\n", entry);
+
+	if (nopause == false) {
+		printf(" [*] Navigate to the EP and set a breakpoint. Then press any key to jump to the shellcode.\n");
+		getchar();
+	}
+	else {
+		printf(" [*] Jumping to shellcode\n");
+	}
+
+	__try {
+		if (autobreak) {
+			__debugbreak();
+		}
+		((void(*)())entry)();
+	}
+	__except (filter(GetExceptionCode(), GetExceptionInformation())) {
+	}
+}
+
 
 int main(int argc, char* argv[])
 {
-    LPVOID base;
-	int i;
-	int offset = 0;
-	bool nopause = false;
-	bool debug = false;
-	bool autobreak = false;
-	char *nptr;
-
 	banner();
 
-	if(argc < 2){
-		printf(" \033[31m [!] Error: \033[0m No file!\n\n");
-		printf("     Required args: <inputfile>\n\n");
-		printf("     Optional Args:\n");
-		printf("                     --offset <offset> The offset to jump into.\n");
-		printf("                     --nopause         Don't pause before jumping to shellcode. Danger!!! \n");
-		printf("                     --autobreak       Insert a breakpoint at the offset. (Default: 0)\n");
-		printf("                     --debug           Verbose logging.\n");
-		printf("                     --version         Print version and exit.\n\n");
+	ProgramArgs args = { 0 };
+	if (!parse_args(&args, argv, argc)) {
 		return -1;
 	}
 
-	printf(" [*] Using file: %s \n", argv[1]);
-
-	for(i=2; i < argc; i++){
-		if(strcmp(argv[i], "--offset") == 0){
-			printf(" [*] Parsing offset...\n");
-			i=i+1;
-			offset = strtol(argv[i], &nptr, 16);
-		}
-		else if(strcmp(argv[i], "--nopause") == 0){
-			nopause = true;
-		}
-		else if(strcmp(argv[i], "--autobreak") == 0){
-			autobreak = true;
-			nopause = true; 
-		}
-		else if(strcmp(argv[i],"--debug") == 0){
-			debug = true;
-		}
-		else if(strcmp(argv[i],"--version") == 0){
-			printf("Version: %s", _version);
-		}
-		else{
-			printf("\033[93m [!] Warning: \033[0mUnknown arg: %s\n",argv[i]);
-		}
-	}
-
-	base = process_file(argv[1], autobreak, offset, debug);
-	if (base == NULL){
-		printf(" [!] Exiting...");
+	size_t shellcode_size = 0;
+	char *shellcode = read_data_from_file(args.input_file, &shellcode_size, args.debug);
+	if (!shellcode) {
 		return -1;
 	}
-	printf(" [*] Using offset: 0x%08x\n", offset);
-	execute(base, offset, nopause, autobreak, debug);
-	printf ("Pausing - Press any key to quit.\n");
+
+	LPVOID base = copy_data_to_executable_memory(shellcode, shellcode_size, args.debug);
+	if (!base) {
+		return -1;
+	}
+
+	// run the shellcode
+	execute(base, args.offset, args.nopause, args.autobreak, args.debug);
+
+	// free allocated memory
+	VirtualFree(base, shellcode_size, MEM_RELEASE);
+	free(shellcode);
+
+	printf("Pausing - Press any key to quit.\n");
 	getchar();
 	return 0;
 }
