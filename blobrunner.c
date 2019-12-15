@@ -94,7 +94,7 @@ void execute(LPVOID base, int offset, bool nopause, bool autobreak, bool debug)
 	#endif
 
 
-	entry = (LPVOID)((int)base + offset);
+	entry = (LPVOID)((ULONG_PTR)base + offset);
 
 
 	#ifdef _WIN64
