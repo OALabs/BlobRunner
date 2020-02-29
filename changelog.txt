@@ -1,3 +1,15 @@
+0.0.4
+ - Added --jit option to trigger configured JIT debugger
+ - Removed --autobreak option
+ - BugFix #5 - Bug with string formatter
+ - BugFix #4 - --autobreak corrupts shell execution
+ - BugFix #3 - --nopause flag doesn't work on x64
+ - Minor updates
+
+0.0.3
+ - Added autobreak option which sets a breakpoint at 0 or the specified offset within the shellcode.
+ - Minor updates
+
 0.0.2
  - Added support for x64 debugging by using CreateThread and ResumeThread
  - Minor updates

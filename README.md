@@ -11,6 +11,7 @@ To use BlobRunner, you can download the compiled executable from the [releases](
 ## Building
 Building the executable is straight forward and relatively painless. 
 
+### Windows
 __Requirements__
  - Download and install Microsoft Visual C++ Build Tools or Visual Studio 
  
@@ -22,18 +23,19 @@ __Build Steps__
  ```
  cl blobrunner.c
  ```
- 
-### Building BlobRunner x64 
+
+
+#### Building BlobRunner x64
  
 Building the x64 version is virtually the same as above, but simply uses the x64 tooling. 
  - Open x64 Visual Studio Command Prompt 
  - Navigate to the directory where BlobRunner is checked out
  - Build the executable by running: 
+ 
   ```
    cl /Feblobrunner64.exe /Foblobrunner64.out blobrunner.c
   ```
 
- 
 ## Usage
 
 To debug: 
@@ -59,15 +61,36 @@ Debug into file and don't pause before the jump. __Warning:__ Ensure you have a 
 BlobRunner.exe shellcode.bin --nopause
 ```
 
-##### Debugging x64 Shellcode
+#### Just-In-Time (JIT) Debugger 
 
-Inline assembly [isn't supported](https://msdn.microsoft.com/en-us/library/wbk4z78b.aspx) by the x64 compiler, so to support debugging into x64 shellcode the loader 
+The optional parameter `--jit` can be used to debug the shell code with the configured Just-In-Time (JIT) debugger. 
+To trigger the debugger - BlobRunner removes execute access from the newly allocated memory region. This causes the program to raise 
+an AccessViolation (0xC0000005) exception when attempting to execute the loaded shellcode. 
+
+Instructions for configuring the JIT debugger on windows can be found [here](https://docs.microsoft.com/en-us/windows/win32/debug/configuring-automatic-debugging). 
+For x64Dbg see [setjit](https://help.x64dbg.com/en/latest/commands/misc/setjit.html) or [setjitauto](https://help.x64dbg.com/en/latest/commands/misc/setjitauto.html). 
+
+Example: 
+```
+BlobRunner.exe shellcode.bin --jit
+```
+
+Once the debugger is loaded grant executable access to the region. Using [x64Dbg](https://x64dbg.com/#start) you can execute the command [setpagerights](https://help.x64dbg.com/en/latest/commands/memory-operations/setpagerights.html)
+using the address returned by BlobRunner.
+
+```
+setpagerights <region>, ExecuteReadWrite
+```
+
+#### Debugging x64 Shellcode
+
+Inline assembly [isn't supported](https://msdn.microsoft.com/en-us/library/wbk4z78b.aspx) by the x64 compiler, so to support debugging x64 shellcode the loader
 creates a suspended thread which allows you to place a breakpoint at the thread entry, before the thread is resumed.
 
-##### Remote Debugging Shell Blobs (IDAPro)
+#### Remote Debugging Shell Blobs (IDAPro)
 
 The process is virtually identical to debugging shellcode locally - with the exception that the you need to copy the shellcode file
-to the remote system. If the file is copied to the same path you are running _win32_remote.exe_ from, you just need to use 
+to the remote system. If the file is copied to the same path you are running _win32_remote.exe_ from, you need to use
 the file name for the parameter. Otherwise, you will need to specify the path to the shellcode file on the remote system.
 
 ## Shellcode Samples  
