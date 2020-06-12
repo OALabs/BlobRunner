@@ -1,3 +1,7 @@
+0.0.5
+ - BugFix #10 - --offset assumes base 16
+ - Remove call to VirtualProtect as the rights are already set to RWX in the call to VirtualAlloc
+
 0.0.4
  - Added --jit option to trigger configured JIT debugger
  - Removed --autobreak option

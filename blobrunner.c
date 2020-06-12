@@ -11,7 +11,7 @@ typedef int bool;
 #define true 1
 #define false 0
 
-const char* _version = "0.0.4";
+const char* _version = "0.0.5";
 
 const char* _banner = " __________.__        ___.  __________\n"
 " \\______   \\  |   ____\\_ |__\\______   \\__ __  ____   ____   ___________     \n"
@@ -65,8 +65,6 @@ LPVOID process_file(char* inputfile_name, bool jit, int offset, bool debug) {
 	printf(" [*] Copying input data...\n");
 
 	CopyMemory(lpvBase, buffer, fileLen);
-	printf(" [*] Entry: Setting executable\n");
-	VirtualProtect(lpvBase, fileLen, PAGE_EXECUTE_READ, &dummy);
 	return lpvBase;
 }
 
@@ -165,7 +163,12 @@ int main(int argc, char* argv[])
 		if (strcmp(argv[i], "--offset") == 0) {
 			printf(" [*] Parsing offset...\n");
 			i = i + 1;
-			offset = strtol(argv[i], &nptr, 16);
+			if (strncmp(argv[i], "0x", 2) == 0) {
+			    offset = strtol(argv[i], &nptr, 16);
+            }
+			else {
+			    offset = strtol(argv[i], &nptr, 10);
+			}
 		}
 		else if (strcmp(argv[i], "--nopause") == 0) {
 			nopause = true;
