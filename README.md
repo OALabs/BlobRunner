@@ -1,3 +1,5 @@
+[![Chat](https://img.shields.io/badge/chat-Discord-blueviolet)](https://discord.gg/cw4U3WHvpn) [![Support](https://img.shields.io/badge/Support-Patreon-FF424D)](https://www.patreon.com/oalabs)
+
 # BlobRunner 
 
 BlobRunner is a simple tool to quickly debug shellcode extracted during malware analysis.  
