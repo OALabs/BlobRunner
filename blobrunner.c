@@ -128,7 +128,7 @@ void execute(LPVOID base, int offset, bool nopause, bool jit, bool debug)
 #else
 	printf(" [*] Entry: 0x%08x\n", (int)(size_t)shell_entry);
 	printf(" [*] Jumping to shellcode\n");
-	__asm jmp shell_entry;
+	((void (*)(void))shell_entry)();
 #endif
 }
 
