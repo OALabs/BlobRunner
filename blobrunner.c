@@ -59,6 +59,9 @@ LPVOID process_file(char* inputfile_name, bool jit, int offset, const unsigned i
 	printf(" [*] Allocating Memory...");
 
 	lpvBase = VirtualAlloc((LPVOID)base, fileLen, 0x3000, 0x40);
+	if (!lpvBase)
+		// the input base address is not valid, let he OS choose the address
+		lpvBase = VirtualAlloc(NULL, fileLen, 0x3000, 0x40);
 
 	printf(".Allocated!\n");
 	printf(" [*]   |-Base: 0x%08x\n", (int)(size_t)lpvBase);
