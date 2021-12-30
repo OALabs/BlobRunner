@@ -11,7 +11,7 @@ typedef int bool;
 #define true 1
 #define false 0
 
-const char* _version = "0.0.5";
+const char* _version = "0.0.6";
 
 const char* _banner = " __________.__        ___.  __________\n"
 " \\______   \\  |   ____\\_ |__\\______   \\__ __  ____   ____   ___________     \n"
@@ -28,8 +28,8 @@ void banner() {
 	return;
 }
 
-LPVOID process_file(char* inputfile_name, bool jit, int offset, bool debug) {
-	LPVOID lpvBase;
+LPVOID process_file(char* inputfile_name, bool jit, int offset, const unsigned int base, bool debug) {
+	LPVOID lpvBase = 0;
 	FILE* file;
 	unsigned long fileLen;
 	char* buffer;
@@ -58,7 +58,10 @@ LPVOID process_file(char* inputfile_name, bool jit, int offset, bool debug) {
 
 	printf(" [*] Allocating Memory...");
 
-	lpvBase = VirtualAlloc(NULL, fileLen, 0x3000, 0x40);
+	lpvBase = VirtualAlloc((LPVOID)base, fileLen, 0x3000, 0x40);
+	if (!lpvBase)
+		// the input base address is not valid, allow the OS to choose a random address
+		lpvBase = VirtualAlloc(NULL, fileLen, 0x3000, 0x40);
 
 	printf(".Allocated!\n");
 	printf(" [*]   |-Base: 0x%08x\n", (int)(size_t)lpvBase);
@@ -125,7 +128,7 @@ void execute(LPVOID base, int offset, bool nopause, bool jit, bool debug)
 #else
 	printf(" [*] Entry: 0x%08x\n", (int)(size_t)shell_entry);
 	printf(" [*] Jumping to shellcode\n");
-	__asm jmp shell_entry;
+	((void (*)(void))shell_entry)();
 #endif
 }
 
@@ -134,6 +137,7 @@ void print_help() {
 	printf("     Required args: <inputfile>\n\n");
 	printf("     Optional Args:\n");
 	printf("         --offset <offset> The offset to jump into.\n");
+	printf("         --base <address>  Try to allocate the memory at the specified address.\n");
 	printf("         --nopause         Don't pause before jumping to shellcode. Danger!!! \n");
 	printf("         --jit             Forces an exception by removing the EXECUTE permission from the alloacted memory.\n");
 	printf("         --debug           Verbose logging.\n");
@@ -145,6 +149,7 @@ int main(int argc, char* argv[])
 	LPVOID base;
 	int i;
 	int offset = 0;
+	unsigned int desired_base = 0;
 	bool nopause = false;
 	bool debug = false;
 	bool jit = false;
@@ -170,6 +175,12 @@ int main(int argc, char* argv[])
 			    offset = strtol(argv[i], &nptr, 10);
 			}
 		}
+		else if (strcmp(argv[i], "--base") == 0) {
+			printf(" [*] Parsing base...\n");
+			i = i + 1;
+			int num_base = strncmp(argv[i], "0x", 2) ? 10 : 16; 
+			desired_base = strtoul(argv[i], &nptr, num_base);
+		}
 		else if (strcmp(argv[i], "--nopause") == 0) {
 			nopause = true;
 		}
@@ -188,12 +199,13 @@ int main(int argc, char* argv[])
 		}
 	}
 
-	base = process_file(argv[1], jit, offset, debug);
+	base = process_file(argv[1], jit, offset, desired_base, debug);
 	if (base == NULL) {
 		printf(" [!] Exiting...");
 		return -1;
 	}
 	printf(" [*] Using offset: 0x%08x\n", offset);
+	printf(" [*] Using base: 0x%08x\n", desired_base);
 	execute(base, offset, nopause, jit, debug);
 	printf("Pausing - Press any key to quit.\n");
 	getchar();
