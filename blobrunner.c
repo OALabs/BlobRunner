@@ -11,7 +11,7 @@ typedef int bool;
 #define true 1
 #define false 0
 
-const char* _version = "0.0.5";
+const char* _version = "0.0.6";
 
 const char* _banner = " __________.__        ___.  __________\n"
 " \\______   \\  |   ____\\_ |__\\______   \\__ __  ____   ____   ___________     \n"
@@ -28,7 +28,7 @@ void banner() {
 	return;
 }
 
-LPVOID process_file(char* inputfile_name, bool jit, int offset, bool debug) {
+LPVOID process_file(char* inputfile_name, bool jit, int offset, bool debug, long long allocBase) {
 	LPVOID lpvBase;
 	FILE* file;
 	unsigned long fileLen;
@@ -58,10 +58,14 @@ LPVOID process_file(char* inputfile_name, bool jit, int offset, bool debug) {
 
 	printf(" [*] Allocating Memory...");
 
-	lpvBase = VirtualAlloc(NULL, fileLen, 0x3000, 0x40);
+	lpvBase = VirtualAlloc((LPVOID)allocBase, fileLen, 0x3000, 0x40);
+	if (!lpvBase) {
+		printf(" Failed to allocate at requested base - 0x%llx\n", allocBase);
+		exit(-1);
+	}
 
 	printf(".Allocated!\n");
-	printf(" [*]   |-Base: 0x%08x\n", (int)(size_t)lpvBase);
+	printf(" [*]   |-Base: 0x%p\n", lpvBase);
 	printf(" [*] Copying input data...\n");
 
 	CopyMemory(lpvBase, buffer, fileLen);
@@ -135,8 +139,9 @@ void print_help() {
 	printf("     Optional Args:\n");
 	printf("         --offset <offset> The offset to jump into.\n");
 	printf("         --nopause         Don't pause before jumping to shellcode. Danger!!! \n");
-	printf("         --jit             Forces an exception by removing the EXECUTE permission from the alloacted memory.\n");
+	printf("         --jit             Forces an exception by removing the EXECUTE permission from the allocated memory.\n");
 	printf("         --debug           Verbose logging.\n");
+	printf("         --base <base>     Attempt to force an allocation of the shell code at this address\n");
 	printf("         --version         Print version and exit.\n\n");
 }
 
@@ -148,6 +153,7 @@ int main(int argc, char* argv[])
 	bool nopause = false;
 	bool debug = false;
 	bool jit = false;
+	long long allocBase = 0;
 	char* nptr;
 
 	banner();
@@ -164,10 +170,20 @@ int main(int argc, char* argv[])
 			printf(" [*] Parsing offset...\n");
 			i = i + 1;
 			if (strncmp(argv[i], "0x", 2) == 0) {
-			    offset = strtol(argv[i], &nptr, 16);
-            }
+				offset = strtol(argv[i], &nptr, 16);
+			}
 			else {
-			    offset = strtol(argv[i], &nptr, 10);
+				offset = strtol(argv[i], &nptr, 10);
+			}
+		}
+		else if (strcmp(argv[i], "--base") == 0) {
+			printf(" [*] Parsing base...\n");
+			i = i + 1;
+			if (strncmp(argv[i], "0x", 2) == 0) {
+				allocBase = strtoll(argv[i], &nptr, 16);
+			}
+			else {
+				allocBase = strtoll(argv[i], &nptr, 10);
 			}
 		}
 		else if (strcmp(argv[i], "--nopause") == 0) {
@@ -188,7 +204,7 @@ int main(int argc, char* argv[])
 		}
 	}
 
-	base = process_file(argv[1], jit, offset, debug);
+	base = process_file(argv[1], jit, offset, debug, allocBase);
 	if (base == NULL) {
 		printf(" [!] Exiting...");
 		return -1;

@@ -1,3 +1,4 @@
 *.exe
 *.obj
 .DS_Store
+build/
