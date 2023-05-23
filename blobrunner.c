@@ -133,11 +133,12 @@ void print_help() {
 	printf(" [!] Error: No file!\n\n");
 	printf("     Required args: <inputfile>\n\n");
 	printf("     Optional Args:\n");
-	printf("         --offset <offset> The offset to jump into.\n");
-	printf("         --nopause         Don't pause before jumping to shellcode. Danger!!! \n");
-	printf("         --jit             Forces an exception by removing the EXECUTE permission from the alloacted memory.\n");
-	printf("         --debug           Verbose logging.\n");
-	printf("         --version         Print version and exit.\n\n");
+	printf("         --offset <offset>   The offset to jump into.\n");
+	printf("         --library <library> A library to load into memory.\n");
+	printf("         --nopause           Don't pause before jumping to shellcode. Danger!!! \n");
+	printf("         --jit               Forces an exception by removing the EXECUTE permission from the alloacted memory.\n");
+	printf("         --debug             Verbose logging.\n");
+	printf("         --version           Print version and exit.\n\n");
 }
 
 int main(int argc, char* argv[])
@@ -168,6 +169,15 @@ int main(int argc, char* argv[])
             }
 			else {
 			    offset = strtol(argv[i], &nptr, 10);
+			}
+		}
+		if (strcmp(argv[i], "--library") == 0) {
+			i = i + 1;
+			printf(" [*] Loading library %s...\n", argv[i]);
+			if (!LoadLibrary(argv[i])) {
+				printf(" [!] Warning: Failed to load: %s\n", argv[i]);
+				printf(" [!] Exiting...");
+				return -1;
 			}
 		}
 		else if (strcmp(argv[i], "--nopause") == 0) {
